@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: changemakers-2026
+    runtime: docker
+    plan: free
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: DATABASE_URL
+        value: sqlite:///app/data/capstone.db
+      - key: SHOW_CONTACT_INFO
+        value: "true"
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "10"
