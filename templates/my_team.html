@@ -1,0 +1,525 @@
+{% extends "base.html" %}
+{% block title %}{{ team.display_name }} | AI Changemakers{% endblock %}
+
+{% block content %}
+{% for ann in announcements %}
+<div class="banner">{{ ann.text }}</div>
+{% endfor %}
+
+<div class="team-header">
+  <h1>{{ team.display_name }}: {{ team.topic }}</h1>
+  <div class="team-topic">{{ learner.full_name }}, тавтай морил!</div>
+  {% if team.shared_goal %}
+  <div class="team-goal">{{ team.shared_goal }}</div>
+  {% endif %}
+</div>
+
+<!-- Members -->
+<div class="card">
+  <div class="card-header">Багийн гишүүд</div>
+  <div class="members-grid">
+    {% for m in team.members %}
+    <div class="member-card">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+        <div class="member-avatar">{{ m.first_name[0] if m.first_name else '?' }}</div>
+        <div>
+          <div class="name">{{ m.full_name }}</div>
+          {% if m.position %}
+          <div class="role">{{ m.position }}</div>
+          {% endif %}
+        </div>
+      </div>
+      {% if m.workplace %}
+      <div class="member-detail">{{ m.workplace }}</div>
+      {% endif %}
+      {% if m.experience %}
+      <div class="member-detail">{{ m.experience }} жил туршлага</div>
+      {% endif %}
+      {% if m.origin %}
+      <div class="member-detail">{{ m.origin }}</div>
+      {% endif %}
+      <div style="margin-top: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+        {% if team.leader_id == m.id %}
+        <span class="leader-badge">Ахлагч</span>
+        {% endif %}
+        <span class="code-badge">{{ m.code }}</span>
+      </div>
+      {% if show_contact %}
+      <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--color-border);">
+        {% if m.phone %}
+        <div class="contact">{{ m.phone }}</div>
+        {% endif %}
+        {% if m.email %}
+        <div class="contact">{{ m.email }}</div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Steps -->
+<div class="card">
+  <div class="card-header">Алхам алхмаар</div>
+  <div class="steps-container">
+    {% for s in steps %}
+    <div class="step {% if s.done %}done{% elif s.get('locked') %}locked{% elif s.num == team.current_step %}active{% endif %}"
+         onclick="togglePanel({{ s.num }})" id="step-{{ s.num }}">
+      <div class="step-number">
+        {% if s.done %}&#10003;{% else %}{{ s.num }}{% endif %}
+      </div>
+      <div class="step-content">
+        <div class="step-name">{{ s.name }}</div>
+        <div class="step-desc">{{ s.desc }}</div>
+        {% if s.get('progress') is not none and s.num == 7 %}
+        <div class="progress-bar"><div class="fill" style="width: {{ s.progress }}%"></div></div>
+        <div style="font-size: 0.72rem; color: var(--color-text-light);">{{ s.progress }}% дууссан</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Step 2: Meeting -->
+    {% if s.num == 2 %}
+    <div class="step-panel" id="panel-2" {% if team.current_step == 2 %}style="display:block"{% endif %}>
+      <form method="post" action="/meeting">
+        <div class="form-group">
+          <label>Уулзалтын өдөр, цаг</label>
+          <input type="text" name="meeting_datetime" class="form-control"
+                 value="{{ team.meeting_datetime or '' }}" placeholder="Жишээ: 2026-12-01, 19:00">
+        </div>
+        <div class="form-group">
+          <label>Уулзалтын линк (Zoom, Meet)</label>
+          <input type="url" name="meeting_link" class="form-control"
+                 value="{{ team.meeting_link or '' }}" placeholder="https://...">
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Хадгалах</button>
+      </form>
+      {% if team.meeting_link and not team.meeting_done %}
+      <form method="post" action="/meeting-done" style="margin-top: 10px;">
+        <button type="submit" class="btn btn-accent btn-sm">Уулзалт боллоо</button>
+      </form>
+      {% endif %}
+      {% if team.meeting_done %}
+      <p style="margin-top: 10px; color: var(--color-success); font-weight: 600; font-size: 0.85rem;">Уулзалт амжилттай боллоо</p>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Step 3: Leader vote -->
+    {% if s.num == 3 %}
+    <div class="step-panel" id="panel-3" {% if team.current_step == 3 %}style="display:block"{% endif %}>
+      {% if team.leader_id %}
+        <p style="font-weight: 600; color: var(--color-success); font-size: 0.88rem;">
+          Ахлагч: {{ team.leader.full_name }}
+        </p>
+      {% else %}
+        <p style="font-size: 0.82rem; margin-bottom: 10px; color: var(--color-text-light);">Нэг гишүүнд санал өгнө үү. Олонхын санал авсан хүн ахлагч болно.</p>
+        <form method="post" action="/vote-leader">
+          {% for m in team.members %}
+          <label class="vote-option">
+            <input type="radio" name="candidate_id" value="{{ m.id }}"
+                   {% if my_vote and my_vote.candidate_id == m.id %}checked{% endif %}>
+            <span>{{ m.full_name }}
+              {% if vote_counts.get(m.id) %}
+              <span style="font-size: 0.72rem; color: var(--color-text-light);">({{ vote_counts[m.id] }} санал)</span>
+              {% endif %}
+            </span>
+          </label>
+          {% endfor %}
+          <button type="submit" class="btn btn-primary btn-sm" style="margin-top: 10px;">Санал өгөх</button>
+        </form>
+        {% if my_vote %}
+        <p style="font-size: 0.78rem; color: var(--color-text-light); margin-top: 8px;">
+          Та {{ my_vote.candidate.full_name }}-д санал өгсөн. Өөрчлөх бол дахин сонгоно уу.
+        </p>
+        {% endif %}
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Step 4: Problem -->
+    {% if s.num == 4 %}
+    <div class="step-panel" id="panel-4" {% if team.current_step == 4 %}style="display:block"{% endif %}>
+      <form method="post" action="/problem">
+        <div class="form-group">
+          <label>Шийдэх асуудал</label>
+          <textarea name="problem_statement" class="form-control" placeholder="Ямар асуудлыг шийдэх вэ? Нэг өгүүлбэрээр.">{{ team.problem_statement or '' }}</textarea>
+        </div>
+        <div class="form-group">
+          <label>Хэнд тулгардаг вэ?</label>
+          <input type="text" name="problem_who" class="form-control"
+                 value="{{ team.problem_who or '' }}" placeholder="Хэн энэ асуудалтай тулгардаг вэ?">
+        </div>
+        <div class="form-group">
+          <label>Яагаад чухал вэ?</label>
+          <textarea name="problem_why" class="form-control" placeholder="Энэ асуудлыг шийдэх нь яагаад чухал вэ?">{{ team.problem_why or '' }}</textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Хадгалах</button>
+      </form>
+    </div>
+    {% endif %}
+
+    <!-- Step 5: Project (enriched) -->
+    {% if s.num == 5 %}
+    <div class="step-panel" id="panel-5" {% if team.current_step == 5 %}style="display:block"{% endif %}>
+      {% if team.leader_id and not is_leader %}
+      <p style="font-size: 0.82rem; color: var(--color-text-light);">Зөвхөн ахлагч {{ team.leader.full_name }} төслийг бүртгүүлнэ.</p>
+      {% endif %}
+      {% set disabled = team.leader_id and not is_leader %}
+      <form method="post" action="/project">
+        <div class="form-group">
+          <label>Төслийн нэр</label>
+          <input type="text" name="project_name" class="form-control"
+                 value="{{ team.project_name or '' }}"
+                 placeholder="Жишээ: AI-аар тайлан автоматжуулах"
+                 {% if disabled %}disabled{% endif %}>
+        </div>
+        <div class="form-group">
+          <label>Нэг өгүүлбэрээр тайлбарла</label>
+          <input type="text" name="project_description" class="form-control"
+                 value="{{ team.project_description or '' }}"
+                 placeholder="Юу хийж, юунд хүрэх вэ?"
+                 {% if disabled %}disabled{% endif %}>
+        </div>
+        <div class="form-group">
+          <label>Хэнд зориулсан вэ? (зорилтот хэрэглэгч)</label>
+          <input type="text" name="project_target_audience" class="form-control"
+                 value="{{ team.project_target_audience or '' }}"
+                 placeholder="Жишээ: Маркетингийн баг, жижиг бизнес эрхлэгчид"
+                 {% if disabled %}disabled{% endif %}>
+        </div>
+        <div class="form-group">
+          <label>Одоо ямар байдалтай вэ? (AI ашиглахаас ӨМНӨХ байдал)</label>
+          <textarea name="project_before_state" class="form-control"
+                    placeholder="Одоо энэ ажлыг хэрхэн хийдэг вэ? Хэдэн цаг зарцуулдаг вэ?"
+                    {% if disabled %}disabled{% endif %}>{{ team.project_before_state or '' }}</textarea>
+        </div>
+        <div class="form-group">
+          <label>AI-аар хэрхэн шийдэх вэ?</label>
+          <textarea name="project_ai_solution" class="form-control"
+                    placeholder="AI-г ашиглан юуг хэрхэн өөрчлөх вэ?"
+                    {% if disabled %}disabled{% endif %}>{{ team.project_ai_solution or '' }}</textarea>
+        </div>
+        <div class="form-group">
+          <label>Ямар AI хэрэгсэл ашиглах вэ?</label>
+          <input type="text" name="project_ai_tools" class="form-control"
+                 value="{{ team.project_ai_tools or '' }}"
+                 placeholder="Жишээ: ChatGPT, Claude, Copilot, Custom GPT, Python + API"
+                 {% if disabled %}disabled{% endif %}>
+        </div>
+        <div class="form-group">
+          <label>AI түвшин</label>
+          <select name="project_ai_level" class="form-control" {% if disabled %}disabled{% endif %}>
+            <option value="0" {% if not team.project_ai_level %}selected{% endif %}>Сонгоно уу</option>
+            <option value="1" {% if team.project_ai_level == 1 %}selected{% endif %}>1 — Assisted (AI-аас зөвлөгөө авч ашиглах)</option>
+            <option value="2" {% if team.project_ai_level == 2 %}selected{% endif %}>2 — Workflow (Хэд хэдэн алхамыг AI-аар автоматжуулах)</option>
+            <option value="3" {% if team.project_ai_level == 3 %}selected{% endif %}>3 — Automation (Бүхэл процессыг AI гүйцэтгэнэ)</option>
+            <option value="4" {% if team.project_ai_level == 4 %}selected{% endif %}>4 — Agent/App (AI бие даан шийдвэр гаргана)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Юуг хэрхэн хэмжих вэ? (хэмжилтийн төлөвлөгөө)</label>
+          <textarea name="project_measurement_plan" class="form-control"
+                    placeholder="Жишээ: Тайлан бэлдэх цагийг before/after хэмжинэ. Алдааны тоог харьцуулна."
+                    {% if disabled %}disabled{% endif %}>{{ team.project_measurement_plan or '' }}</textarea>
+        </div>
+        {% if not disabled %}
+        <button type="submit" class="btn btn-primary btn-sm">Хадгалах</button>
+        {% endif %}
+      </form>
+    </div>
+    {% endif %}
+
+    <!-- Step 6: Plan/Tasks -->
+    {% if s.num == 6 %}
+    <div class="step-panel" id="panel-6" {% if team.current_step == 6 %}style="display:block"{% endif %}>
+      {% if team.tasks %}
+      <div style="margin-bottom: 12px;">
+        {% for t in team.tasks %}
+        <div class="task-item">
+          <span class="task-status-badge {{ t.status.value }}">
+            {% if t.status.value == 'todo' %}Хийгээгүй{% elif t.status.value == 'in_progress' %}Хийж байна{% else %}Дууссан{% endif %}
+          </span>
+          <span class="task-title">{{ t.title }}</span>
+          <span class="task-assignee">{{ t.assignee.full_name if t.assignee else '' }}</span>
+          {% if t.due_date %}
+          <span style="font-size: 0.68rem; color: var(--color-text-light);">{{ t.due_date }}</span>
+          {% endif %}
+          <form method="post" action="/tasks/{{ t.id }}/status" style="display:inline;">
+            <select name="status" onchange="this.form.submit()" style="font-size: 0.68rem; padding: 2px 4px; border: 1px solid var(--color-border); border-radius: 3px;">
+              <option value="todo" {% if t.status == TaskStatus.todo %}selected{% endif %}>Хийгээгүй</option>
+              <option value="in_progress" {% if t.status == TaskStatus.in_progress %}selected{% endif %}>Хийж байна</option>
+              <option value="done" {% if t.status == TaskStatus.done %}selected{% endif %}>Дууссан</option>
+            </select>
+          </form>
+          <form method="post" action="/tasks/{{ t.id }}/delete" style="display:inline;">
+            <button type="submit" class="btn btn-sm" style="padding:2px 6px; font-size:0.68rem; color:var(--color-danger); background:none; border:none; min-height:auto;">&#x2715;</button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <form method="post" action="/tasks/add">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end;">
+          <div class="form-group" style="flex: 2; min-width: 150px; margin-bottom: 0;">
+            <label>Шинэ ажил</label>
+            <input type="text" name="title" class="form-control" placeholder="Ажлын нэр" required>
+          </div>
+          <div class="form-group" style="flex: 1; min-width: 120px; margin-bottom: 0;">
+            <label>Хариуцагч</label>
+            <select name="assignee_id" class="form-control">
+              <option value="0">Сонгоогүй</option>
+              {% for m in team.members %}
+              <option value="{{ m.id }}">{{ m.full_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group" style="flex: 1; min-width: 120px; margin-bottom: 0;">
+            <label>Дуусах огноо</label>
+            <input type="date" name="due_date" class="form-control">
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm">Нэмэх</button>
+        </div>
+      </form>
+    </div>
+    {% endif %}
+
+    <!-- Step 7: Implementation -->
+    {% if s.num == 7 %}
+    <div class="step-panel" id="panel-7" {% if team.current_step == 7 %}style="display:block"{% endif %}>
+      <div class="info-box">
+        Ажлын төлөвийг 6-р алхамд шинэчилнэ үү. Доор долоо хоногийн явц, линкүүдээ оруулна уу.
+      </div>
+      <p style="margin-bottom: 14px;">
+        <a href="/guide" class="btn btn-outline btn-sm">Capstone заавар унших</a>
+      </p>
+
+      {% if team.weekly_updates %}
+      <div style="margin-bottom: 12px;">
+        {% for u in team.weekly_updates|sort(attribute='created_at', reverse=True) %}
+        <div class="update-item">
+          <div class="update-meta">{{ u.created_by.full_name if u.created_by else '' }} · {{ u.created_at.strftime('%m/%d %H:%M') }}</div>
+          <div class="update-content">{{ u.content }}</div>
+          {% if u.repo_link or u.demo_link or u.slide_link %}
+          <div class="update-links">
+            {% if u.repo_link %}<a href="{{ u.repo_link }}" target="_blank">Repo</a>{% endif %}
+            {% if u.demo_link %}<a href="{{ u.demo_link }}" target="_blank">Demo</a>{% endif %}
+            {% if u.slide_link %}<a href="{{ u.slide_link }}" target="_blank">Слайд</a>{% endif %}
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <form method="post" action="/weekly-update">
+        <div class="form-group">
+          <label>Энэ долоо хоногийн явц</label>
+          <textarea name="content" class="form-control" placeholder="Юу хийсэн, юу сурсан, дараа нь юу хийх вэ?"></textarea>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <div class="form-group" style="flex:1; min-width:140px; margin-bottom:0;">
+            <input type="url" name="repo_link" class="form-control" placeholder="GitHub/GitLab линк">
+          </div>
+          <div class="form-group" style="flex:1; min-width:140px; margin-bottom:0;">
+            <input type="url" name="demo_link" class="form-control" placeholder="Demo линк">
+          </div>
+          <div class="form-group" style="flex:1; min-width:140px; margin-bottom:0;">
+            <input type="url" name="slide_link" class="form-control" placeholder="Слайд линк">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm" style="margin-top: 10px;">Явц нэмэх</button>
+      </form>
+
+      <!-- Results section -->
+      <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-border);">
+        <div style="font-size: 0.8rem; font-weight: 600; color: var(--color-text-light); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 12px;">Үр дүнгийн тайлан</div>
+        <div class="info-box" style="margin-bottom: 14px;">
+          Төслөө хэрэгжүүлсний дараа бодит тоон үр дүнгээ энд бүртгэнэ үү. <strong>Дор хаяж 3 хэмжилтийг</strong> бөглөнө (Цаг эсвэл Гарц заавал). Энэ мэдээлэл хөрөнгө оруулагч байгууллагад тайлан гаргахад ашиглагдана.
+        </div>
+        <form method="post" action="/results">
+          <div class="form-group">
+            <label>Нэгдсэн дүгнэлт</label>
+            <textarea name="result_summary" class="form-control" placeholder="AI ашигласнаар юу өөрчлөгдсөн бэ? Нэг параграфаар.">{{ team.result_summary or '' }}</textarea>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label>Цаг хугацаа (Time)</label>
+              <input type="text" name="result_time_saved" class="form-control"
+                     value="{{ team.result_time_saved or '' }}"
+                     placeholder="Жишээ: 4 цаг → 45 мин">
+            </div>
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label>Гарц (Output)</label>
+              <input type="text" name="result_output_change" class="form-control"
+                     value="{{ team.result_output_change or '' }}"
+                     placeholder="Жишээ: Өдөрт 3 → 12 контент">
+            </div>
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label>Чанар (Quality)</label>
+              <input type="text" name="result_quality_change" class="form-control"
+                     value="{{ team.result_quality_change or '' }}"
+                     placeholder="Жишээ: Алдаа 15% → 2%">
+            </div>
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label>Өртөг (Value)</label>
+              <input type="text" name="result_cost_change" class="form-control"
+                     value="{{ team.result_cost_change or '' }}"
+                     placeholder="Жишээ: $500/сар → $50/сар">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Үр нөлөө (Outcome)</label>
+            <input type="text" name="result_outcome_change" class="form-control"
+                   value="{{ team.result_outcome_change or '' }}"
+                   placeholder="Жишээ: Хариу өгөх хугацаа 24ц → 2ц">
+          </div>
+          <div class="form-group">
+            <label>Гол сургамж</label>
+            <textarea name="result_key_insight" class="form-control" placeholder="Юу сурсан бэ? Юу хүндрэлтэй байсан бэ?">{{ team.result_key_insight or '' }}</textarea>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm">Үр дүн хадгалах</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Step 8: Presentation + Rehearsal -->
+    {% if s.num == 8 %}
+    <div class="step-panel" id="panel-8" {% if team.current_step == 8 %}style="display:block"{% endif %}>
+      {% if team.leader_id and not is_leader %}
+      <p style="font-size: 0.82rem; color: var(--color-text-light);">Зөвхөн ахлагч {{ team.leader.full_name }} өдрөө сонгоно.</p>
+      {% else %}
+
+        <!-- Presentation materials -->
+        <div style="font-size: 0.8rem; font-weight: 600; color: var(--color-text-light); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 10px;">Танилцуулгын материал</div>
+        <div class="info-box">
+          <strong>Шаардлага:</strong>
+          <ul style="margin: 6px 0 0 16px; font-size: 0.82rem; line-height: 1.6;">
+            <li><strong>Слайд</strong> — Google Slides эсвэл Canva-аар бэлдэнэ. Sharing тохиргоог <strong>"Anyone with the link"</strong> болго.</li>
+            <li><strong>Screen recording</strong> — Систем/demo хэрхэн ажилладагийг харуулсан дэлгэцийн бичлэг заавал оруулна (слайд дотор embed хийх, эсвэл тусдаа линк).</li>
+            <li>Слайд нь <strong>10 хуудас</strong>: Нүүр → Асуудал → Өмнөх байдал → AI шийдэл → Demo → Дараах байдал → Хэмжилт → AI түвшин → Сургамж → Дуусгавар.</li>
+          </ul>
+        </div>
+
+        <form method="post" action="/presentation" style="margin-top: 14px;">
+          <div class="form-group">
+            <label>Слайд линк (Google Slides / Canva — "Anyone with link" sharing)</label>
+            <input type="url" name="presentation_slide_link" class="form-control"
+                   value="{{ team.presentation_slide_link or '' }}"
+                   placeholder="https://docs.google.com/presentation/d/... эсвэл https://www.canva.com/...">
+          </div>
+          <div class="form-group">
+            <label>Screen recording линк (Loom, YouTube, Google Drive — хуваалцсан)</label>
+            <input type="url" name="presentation_demo_video_link" class="form-control"
+                   value="{{ team.presentation_demo_video_link or '' }}"
+                   placeholder="https://www.loom.com/share/... эсвэл слайд дотор оруулсан бол хоосон орхи">
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm">Материал хадгалах</button>
+        </form>
+
+        {% if team.presentation_slide_link %}
+        <div style="margin-top: 10px; font-size: 0.82rem; color: var(--color-success); font-weight: 500;">
+          Слайд бүртгэгдсэн
+          {% if team.presentation_demo_video_link %} · Screen recording бүртгэгдсэн{% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Rehearsal day selection -->
+        <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-border);">
+          <div style="font-size: 0.8rem; font-weight: 600; color: var(--color-text-light); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 10px;">Rehearsal өдөр сонгох</div>
+          <div class="info-box">
+            Demo Day (12/26)-ээс өмнө зөвлөгөө авах зорилгоор төслөө танилцуулна. Өдөр бүр <strong>5–6 баг</strong>, нэг баг <strong>~10 мин</strong> (7 мин танилцуулга + 3 мин асуулт хариулт).
+          </div>
+
+          {% if team.slot %}
+          <div class="slot-card selected" style="margin-top: 10px;">
+            <div class="slot-info">
+              <div class="slot-date">{{ team.slot.slot_date.strftime('%Y-%m-%d') }} ({{ team.slot.time_start }}–{{ team.slot.time_end }})</div>
+              <div class="slot-session">{{ team.slot.session_name }}</div>
+            </div>
+            <span style="color: var(--color-success); font-weight: 600; font-size: 0.85rem;">Баталгаажсан</span>
+          </div>
+          <form method="post" action="/cancel-slot" style="margin-top: 8px;">
+            <button type="submit" class="btn btn-outline btn-sm">Өдрөө солих</button>
+          </form>
+          {% else %}
+          <p style="font-size: 0.85rem; margin: 10px 0; font-weight: 500;">Rehearsal өдрөө сонгоно уу:</p>
+          {% for slot in available_slots %}
+          <div class="slot-card {% if slot.is_full %}full{% endif %}">
+            <div class="slot-info">
+              <div class="slot-date">{{ slot.slot_date.strftime('%Y-%m-%d') }} ({{ slot.time_start }}–{{ slot.time_end }})</div>
+              <div class="slot-session">{{ slot.session_name }}</div>
+            </div>
+            <div class="slot-capacity">{{ slot.booked_count }}/{{ slot.capacity }} баг</div>
+            {% if not slot.is_full %}
+            <form method="post" action="/select-slot">
+              <input type="hidden" name="slot_id" value="{{ slot.id }}">
+              <button type="submit" class="btn btn-accent btn-sm">Сонгох</button>
+            </form>
+            {% else %}
+            <span style="font-size: 0.78rem; color: var(--color-danger);">Дүүрсэн</span>
+            {% endif %}
+          </div>
+          {% endfor %}
+          {% endif %}
+        </div>
+
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Step 9: Demo Day -->
+    {% if s.num == 9 %}
+    <div class="step-panel" id="panel-9" {% if team.current_step == 9 %}style="display:block"{% endif %}>
+      <div class="demo-day-card">
+        <h2>Demo Day — Хаалтын арга хэмжээ</h2>
+        <div class="demo-day-date">2026 оны 12-р сарын 26, Бямба</div>
+        <div class="demo-day-time">19:00–20:30 (Улаанбаатарын цагаар)</div>
+        <div id="countdown"></div>
+      </div>
+      <div class="info-box" style="text-align: left; margin-top: 14px;">
+        Rehearsal танилцуулгуудыг үнэлсний дараа хамгийн сонирхолтой, асуудлаа бодитоор шийдсэн, бусад багуудад туршлагаа хуваалцмаар <strong>оюутны 5 баг</strong> болон <strong>мэргэжилтний 5 баг</strong> — нийт <strong>10 баг</strong> Demo Day хаалтын арга хэмжээн дээр танилцуулга хийнэ.
+      </div>
+    </div>
+    {% endif %}
+
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function togglePanel(num) {
+  const panel = document.getElementById('panel-' + num);
+  if (!panel) return;
+  if (panel.style.display === 'block') {
+    panel.style.display = 'none';
+  } else {
+    panel.style.display = 'block';
+    panel.classList.add('show');
+  }
+}
+
+const demoDay = new Date('2026-12-26T19:00:00+08:00');
+function updateCountdown() {
+  const el = document.getElementById('countdown');
+  if (!el) return;
+  const now = new Date();
+  const diff = demoDay - now;
+  if (diff <= 0) {
+    el.textContent = 'Demo Day болж байна!';
+    return;
+  }
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  el.textContent = days + ' хоног ' + hours + ' цаг үлдлээ';
+}
+updateCountdown();
+setInterval(updateCountdown, 60000);
+</script>
+{% endblock %}

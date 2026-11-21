@@ -1,0 +1,13 @@
+data/
+*.db
+.env
+__pycache__/
+*.pyc
+backups/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+cookies.txt
+admin_cookies.txt
+.claude/

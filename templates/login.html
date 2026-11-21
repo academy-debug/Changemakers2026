@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Нэвтрэх | AI Changemakers 100x100</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <style>
+    .track-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 24px;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      border: 1px solid var(--color-border);
+    }
+    .track-tab {
+      flex: 1;
+      padding: 12px 8px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 600;
+      font-family: var(--font);
+      border: none;
+      background: var(--color-bg);
+      color: var(--color-text-light);
+      transition: var(--transition);
+    }
+    .track-tab:hover {
+      background: var(--color-surface);
+      color: var(--color-text);
+    }
+    .track-tab.active {
+      background: var(--color-primary);
+      color: #fff;
+    }
+    .track-tab + .track-tab {
+      border-left: 1px solid var(--color-border);
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-card">
+      <img src="/static/images/logo.jpg" alt="AI Changemakers 100x100" class="logo">
+      <h1>Тавтай морил!</h1>
+      <p class="subtitle">Утасны дугаар эсвэл имэйл хаягаа оруулаад багаа олоорой.</p>
+
+      {% if error %}
+      <div class="error">{{ error }}</div>
+      {% endif %}
+
+      <div class="track-tabs">
+        <button type="button" class="track-tab {% if not selected_track or selected_track == 'professionals' %}active{% endif %}"
+                onclick="selectTrack('professionals', this)">Мэргэжилтэн</button>
+        <button type="button" class="track-tab {% if selected_track == 'students' %}active{% endif %}"
+                onclick="selectTrack('students', this)">Оюутан</button>
+      </div>
+
+      <form method="post" action="/login" id="loginForm">
+        <input type="hidden" name="track" id="trackInput" value="{{ selected_track or 'professionals' }}">
+        <div class="form-group">
+          <input
+            type="text"
+            name="credential"
+            class="form-control"
+            placeholder="Утас эсвэл имэйл"
+            required
+            autofocus
+            autocomplete="tel"
+            style="text-align: center; font-size: 1.1rem;"
+          >
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Нэвтрэх</button>
+      </form>
+
+      <p style="margin-top: 16px; font-size: 0.75rem; color: var(--color-text-light);">
+        Асуудал гарвал зохион байгуулагчтай холбогдоно уу.
+      </p>
+    </div>
+  </div>
+  <script>
+  function selectTrack(track, btn) {
+    document.getElementById('trackInput').value = track;
+    document.querySelectorAll('.track-tab').forEach(function(t) { t.classList.remove('active'); });
+    btn.classList.add('active');
+  }
+  </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Админ нэвтрэх | AI Changemakers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/theme.css">
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-card">
+      <h1>Зохион байгуулагч</h1>
+      <p class="subtitle">Нууц үгээ оруулна уу.</p>
+      {% if error %}
+      <div class="error">{{ error }}</div>
+      {% endif %}
+      <form method="post" action="/admin/login">
+        <div class="form-group">
+          <input type="password" name="password" class="form-control" placeholder="Нууц үг" required autofocus style="text-align:center;">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Нэвтрэх</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

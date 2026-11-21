@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}{{ team.display_name }} (Админ) | AI Changemakers{% endblock %}
+{% block main_class %}main-wide{% endblock %}
+
+{% block content %}
+<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+  <a href="/admin" style="font-size: 0.85rem;">&larr; Буцах</a>
+  <h1 style="font-size: 1.2rem; color: var(--color-primary);">{{ team.display_name }}: {{ team.topic }}</h1>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+  <!-- Left: Team info -->
+  <div>
+    <div class="card">
+      <div class="card-header">Багийн мэдээлэл</div>
+      <table style="font-size: 0.85rem; width: 100%;">
+        <tr><td style="color: var(--color-text-light); padding: 4px 8px;">Урсгал</td><td>{{ team.track.value }}</td></tr>
+        <tr><td style="color: var(--color-text-light); padding: 4px 8px;">Алхам</td><td>{{ team.current_step }}</td></tr>
+        <tr><td style="color: var(--color-text-light); padding: 4px 8px;">Ахлагч</td><td>{{ team.leader.full_name if team.leader else 'Сонгогдоогүй' }}</td></tr>
+        <tr><td style="color: var(--color-text-light); padding: 4px 8px;">Төсөл</td><td>{{ team.project_name or 'Бүртгүүлээгүй' }}</td></tr>
+        <tr><td style="color: var(--color-text-light); padding: 4px 8px;">Асуудал</td><td>{{ team.problem_statement or '' }}</td></tr>
+        <tr><td style="color: var(--color-text-light); padding: 4px 8px;">AI шийдэл</td><td>{{ team.project_ai_solution or '' }}</td></tr>
+        <tr><td style="color: var(--color-text-light); padding: 4px 8px;">Уулзалт</td><td>{{ 'Болсон' if team.meeting_done else 'Болоогүй' }}</td></tr>
+        <tr><td style="color: var(--color-text-light); padding: 4px 8px;">Өдөр</td><td>{% if team.slot %}{{ team.slot.slot_date }}{% else %}Сонгоогүй{% endif %}</td></tr>
+        <tr><td style="color: var(--color-text-light); padding: 4px 8px;">Явц</td><td>{{ team.task_progress }}%</td></tr>
+      </table>
+    </div>
+
+    <!-- Set leader -->
+    <div class="card">
+      <div class="card-header">Ахлагч томилох</div>
+      <form method="post" action="/admin/team/{{ team.id }}/set-leader" style="display:flex; gap: 8px;">
+        <select name="leader_id" class="form-control">
+          <option value="">Сонгоно уу</option>
+          {% for m in team.members %}
+          <option value="{{ m.id }}" {% if team.leader_id == m.id %}selected{% endif %}>{{ m.full_name }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary btn-sm">Томилох</button>
+      </form>
+    </div>
+
+    <!-- Set slot -->
+    <div class="card">
+      <div class="card-header">Өдөр солих</div>
+      <form method="post" action="/admin/team/{{ team.id }}/set-slot" style="display:flex; gap: 8px;">
+        <select name="slot_id" class="form-control">
+          <option value="0">Сонгоогүй</option>
+          {% for s in slots %}
+          {% if not s.is_demo_day %}
+          <option value="{{ s.id }}" {% if team.slot_id == s.id %}selected{% endif %}>
+            {{ s.slot_date }} ({{ s.booked_count }}/{{ s.capacity }})
+          </option>
+          {% endif %}
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary btn-sm">Хадгалах</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Right: Members -->
+  <div>
+    <div class="card">
+      <div class="card-header">Гишүүд ({{ team.members|length }})</div>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Нэр</th>
+            <th>Код</th>
+            <th>Утас</th>
+            <th>Имэйл</th>
+            <th>Нэвтэрсэн</th>
+            <th>Шилжүүлэх</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in team.members %}
+          <tr>
+            <td>{{ m.full_name }}{% if team.leader_id == m.id %} <span class="leader-badge" style="font-size:0.6rem;">Ахлагч</span>{% endif %}</td>
+            <td>{{ m.code }}</td>
+            <td>{{ m.phone or '' }}</td>
+            <td style="font-size: 0.75rem;">{{ m.email or '' }}</td>
+            <td>{% if m.last_login_at %}{{ m.last_login_at.strftime('%m/%d %H:%M') }}{% else %}<span style="color:var(--color-danger);">Үгүй</span>{% endif %}</td>
+            <td>
+              <form method="post" action="/admin/team/{{ team.id }}/move-member" style="display:flex; gap: 4px;">
+                <input type="hidden" name="learner_id" value="{{ m.id }}">
+                <select name="new_team_id" style="font-size: 0.7rem; padding: 2px; max-width: 100px;">
+                  {% for t in all_teams %}
+                  <option value="{{ t.id }}" {% if t.id == team.id %}selected{% endif %}>{{ t.display_name }}</option>
+                  {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-sm btn-outline" style="padding:1px 4px; min-height:20px; font-size:0.65rem;">Зөөх</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Tasks -->
+    {% if team.tasks %}
+    <div class="card">
+      <div class="card-header">Ажлууд ({{ team.tasks|length }})</div>
+      {% for t in team.tasks %}
+      <div class="task-item">
+        <span class="task-status-badge {{ t.status.value }}">{{ t.status.value }}</span>
+        <span class="task-title">{{ t.title }}</span>
+        <span class="task-assignee">{{ t.assignee.full_name if t.assignee else '' }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Weekly updates -->
+    {% if team.weekly_updates %}
+    <div class="card">
+      <div class="card-header">Явцын мэдээлэл</div>
+      {% for u in team.weekly_updates|sort(attribute='created_at', reverse=True) %}
+      <div class="update-item">
+        <div class="update-meta">{{ u.created_by.full_name if u.created_by else '' }} · {{ u.created_at.strftime('%m/%d %H:%M') }}</div>
+        <div class="update-content">{{ u.content }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

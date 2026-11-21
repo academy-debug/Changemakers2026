@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Capstone заавар | AI Changemakers{% endblock %}
+{% block content %}
+<div class="card guide-content">
+  {% if content_html %}
+  {{ content_html | safe }}
+  {% else %}
+  <p style="color: var(--color-text-light);">Зааврын агуулга удахгүй бэлэн болно.</p>
+  {% endif %}
+</div>
+{% endblock %}

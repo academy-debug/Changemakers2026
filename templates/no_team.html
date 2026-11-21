@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Баг олдсонгүй | AI Changemakers{% endblock %}
+{% block content %}
+<div class="card" style="text-align: center; padding: 40px 20px;">
+  <h2 style="color: var(--color-primary);">Сайн байна уу, {{ learner.full_name }}!</h2>
+  <p style="margin-top: 12px; color: var(--color-text-light);">
+    Таныг ямар нэг багт хуваарилаагүй байна. Зохион байгуулагчтай холбогдоно уу.
+  </p>
+  <a href="/logout" class="btn btn-outline" style="margin-top: 20px;">Гарах</a>
+</div>
+{% endblock %}

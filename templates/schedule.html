@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Хуваарь | AI Changemakers{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">Хөтөлбөрийн хуваарь</div>
+  <table class="admin-table" style="font-size: 0.85rem;">
+    <thead>
+      <tr>
+        <th>Огноо</th>
+        <th>Цаг</th>
+        <th>Хичээл</th>
+        <th>Суудал</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in slots %}
+      <tr class="schedule-row {% if s.slot_date == today %}today{% elif s.slot_date > today %}{% if loop.first or slots[loop.index0 - 1].slot_date < today %}next{% endif %}{% endif %}">
+        <td>{{ s.slot_date.strftime('%Y-%m-%d') }}</td>
+        <td>{{ s.time_start }} - {{ s.time_end }}</td>
+        <td>{{ s.session_name }}</td>
+        <td>{% if not s.is_demo_day %}{{ s.booked_count }}/{{ s.capacity }}{% else %}Бүгд{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Импортын тайлан | AI Changemakers{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 16px;">
+  <a href="/admin" style="font-size: 0.85rem;">&larr; Хяналтын самбар руу</a>
+</div>
+
+<div class="card">
+  <div class="card-header">Импортын тайлан: {{ track }}</div>
+
+  <div class="stat-grid" style="margin-top: 12px;">
+    <div class="stat-card">
+      <div class="stat-value">{{ report.learners_imported }}</div>
+      <div class="stat-label">Суралцагч</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ report.teams_imported }}</div>
+      <div class="stat-label">Баг</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ report.slots_imported }}</div>
+      <div class="stat-label">Слот</div>
+    </div>
+  </div>
+
+  {% if report.no_phone %}
+  <div style="margin-top: 12px;">
+    <strong style="color: var(--color-warning);">Утасгүй ({{ report.no_phone|length }}):</strong>
+    <span style="font-size: 0.85rem;">{{ report.no_phone[:20]|join(', ') }}{% if report.no_phone|length > 20 %}...{% endif %}</span>
+  </div>
+  {% endif %}
+
+  {% if report.no_email %}
+  <div style="margin-top: 8px;">
+    <strong style="color: var(--color-warning);">Имэйлгүй ({{ report.no_email|length }}):</strong>
+    <span style="font-size: 0.85rem;">{{ report.no_email[:20]|join(', ') }}{% if report.no_email|length > 20 %}...{% endif %}</span>
+  </div>
+  {% endif %}
+
+  {% if report.duplicate_phones %}
+  <div style="margin-top: 8px;">
+    <strong style="color: var(--color-danger);">Давхардсан утас:</strong>
+    {% for phone, code1, code2 in report.duplicate_phones %}
+    <div style="font-size: 0.85rem;">{{ phone }}: {{ code1 }}, {{ code2 }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if report.duplicate_emails %}
+  <div style="margin-top: 8px;">
+    <strong style="color: var(--color-danger);">Давхардсан имэйл:</strong>
+    {% for email, code1, code2 in report.duplicate_emails %}
+    <div style="font-size: 0.85rem;">{{ email }}: {{ code1 }}, {{ code2 }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if report.unusual_team_size %}
+  <div style="margin-top: 8px;">
+    <strong style="color: var(--color-warning);">4-5 хүнээс өөр хэмжээтэй баг:</strong>
+    {% for name, count in report.unusual_team_size %}
+    <div style="font-size: 0.85rem;">{{ name }}: {{ count }} гишүүн</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if report.warnings %}
+  <div style="margin-top: 8px;">
+    <strong>Анхааруулга:</strong>
+    {% for w in report.warnings %}
+    <div style="font-size: 0.85rem;">{{ w }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

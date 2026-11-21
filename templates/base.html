@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}AI Changemakers 100x100{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/theme.css">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  {% block header %}
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="header-logo">
+        <img src="/static/images/logo.jpg" alt="AI Changemakers">
+        <span>100x100</span>
+      </a>
+      <nav class="header-nav">
+        {% if request.session.get('learner_id') %}
+          <a href="/my-team">Миний баг</a>
+          <a href="/guide">Заавар</a>
+          <a href="/cpd">CPD</a>
+          <a href="/logout">Гарах</a>
+        {% elif request.session.get('is_admin') %}
+          <a href="/admin">Хяналтын самбар</a>
+          <a href="/admin/never-logged">Нэвтрээгүй</a>
+          <a href="/admin/logout">Гарах</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+  {% endblock %}
+
+  {% block body %}
+  <main class="{% block main_class %}main{% endblock %}">
+    {% block content %}{% endblock %}
+  </main>
+  {% endblock %}
+
+  <script src="/static/js/app.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

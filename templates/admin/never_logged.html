@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Нэвтрээгүй суралцагчид | AI Changemakers{% endblock %}
+{% block main_class %}main-wide{% endblock %}
+
+{% block content %}
+<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+  <a href="/admin" style="font-size: 0.85rem;">&larr; Буцах</a>
+  <h1 style="font-size: 1.2rem; color: var(--color-primary);">Нэг ч удаа нэвтрээгүй суралцагчид ({{ learners|length }})</h1>
+</div>
+
+<div class="card">
+  <p style="font-size: 0.85rem; color: var(--color-text-light); margin-bottom: 12px;">
+    Доорх жагсаалтыг хуулж аваад сануулга илгээхэд ашиглана уу.
+  </p>
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Код</th>
+        <th>Овог нэр</th>
+        <th>Урсгал</th>
+        <th>Утас</th>
+        <th>Имэйл</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for l in learners %}
+      <tr>
+        <td>{{ l.code }}</td>
+        <td>{{ l.full_name }}</td>
+        <td>{{ 'ЗМ' if l.track.value == 'professionals' else 'ОЮ' }}</td>
+        <td>{{ l.phone or '' }}</td>
+        <td>{{ l.email or '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Хяналтын самбар | AI Changemakers{% endblock %}
+{% block main_class %}main-wide{% endblock %}
+
+{% block content %}
+<h1 style="font-size: 1.3rem; margin-bottom: 16px; color: var(--color-primary);">Хяналтын самбар</h1>
+
+<!-- Stats -->
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-value">{{ total_learners }}</div>
+    <div class="stat-label">Нийт суралцагч</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ logged_in_count }}</div>
+    <div class="stat-label">Нэвтэрсэн</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ teams|length }}</div>
+    <div class="stat-label">Нийт баг</div>
+  </div>
+  {% for step_num in range(1, 10) %}
+  <div class="stat-card">
+    <div class="stat-value">{{ step_counts.get(step_num, 0) }}</div>
+    <div class="stat-label">Алхам {{ step_num }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Slot fill -->
+<div class="card" style="margin-bottom: 16px;">
+  <div class="card-header">Танилцуулгын слотын дүүргэлт</div>
+  {% for s in slots %}
+  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px; font-size: 0.85rem;">
+    <span style="min-width: 150px;">{{ s.track.value }} · {{ s.slot_date }} · {{ s.session_name }}</span>
+    <div class="progress-bar" style="flex: 1;">
+      <div class="fill" style="width: {{ (s.booked_count / s.capacity * 100) if s.capacity else 0 }}%"></div>
+    </div>
+    <span>{{ s.booked_count }}/{{ s.capacity }}</span>
+    <form method="post" action="/admin/slot/{{ s.id }}/capacity" style="display:flex; gap: 4px;">
+      <input type="number" name="capacity" value="{{ s.capacity }}" style="width: 50px; font-size: 0.8rem; padding: 2px 4px;">
+      <button type="submit" class="btn btn-sm btn-outline" style="padding: 2px 6px; min-height: 24px;">Шинэчлэх</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Announcement -->
+<div class="card" style="margin-bottom: 16px;">
+  <div class="card-header">Зарлал</div>
+  <form method="post" action="/admin/announcement" style="display:flex; gap: 8px;">
+    <input type="text" name="text" class="form-control" placeholder="Бүх суралцагчид харагдах зарлал бичнэ үү (хоосон бол устгана)">
+    <button type="submit" class="btn btn-primary btn-sm">Хадгалах</button>
+  </form>
+</div>
+
+<!-- Import -->
+<div class="card" style="margin-bottom: 16px;">
+  <div class="card-header">Excel импорт</div>
+  <form method="post" action="/admin/import" enctype="multipart/form-data" style="display:flex; gap: 8px; align-items: flex-end; flex-wrap: wrap;">
+    <div class="form-group" style="margin-bottom: 0;">
+      <label>Файл</label>
+      <input type="file" name="file" accept=".xlsx" required class="form-control" style="padding: 6px;">
+    </div>
+    <div class="form-group" style="margin-bottom: 0;">
+      <label>Урсгал</label>
+      <select name="track" class="form-control">
+        <option value="professionals">Мэргэжилтнүүд</option>
+        <option value="students">Оюутнууд</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">Импортлох</button>
+  </form>
+</div>
+
+<!-- Export -->
+<div class="card" style="margin-bottom: 16px;">
+  <div class="card-header">Excel экспорт</div>
+  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+    <a href="/admin/export/learners" class="btn btn-outline btn-sm">Суралцагчид</a>
+    <a href="/admin/export/teams" class="btn btn-outline btn-sm">Багууд</a>
+    <a href="/admin/export/schedule" class="btn btn-outline btn-sm">Хуваарь</a>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-bar">
+  <form method="get" action="/admin" style="display:flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+    <select name="track">
+      <option value="">Бүх урсгал</option>
+      <option value="professionals" {% if track_filter == 'professionals' %}selected{% endif %}>Мэргэжилтнүүд</option>
+      <option value="students" {% if track_filter == 'students' %}selected{% endif %}>Оюутнууд</option>
+    </select>
+    <select name="step">
+      <option value="">Бүх алхам</option>
+      {% for i in range(1, 10) %}
+      <option value="{{ i }}" {% if step_filter == i|string %}selected{% endif %}>Алхам {{ i }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm">Шүүх</button>
+    <a href="/admin" class="btn btn-outline btn-sm">Арилгах</a>
+  </form>
+  <a href="/admin/never-logged" class="btn btn-outline btn-sm" style="margin-left: auto;">Нэвтрээгүй суралцагчид</a>
+</div>
+
+<!-- Teams table -->
+<div style="overflow-x: auto;">
+<table class="admin-table">
+  <thead>
+    <tr>
+      <th>Урсгал</th>
+      <th>Баг</th>
+      <th>Сэдэв</th>
+      <th>Ахлагч</th>
+      <th>Төсөл</th>
+      <th>Алхам</th>
+      <th>Явц</th>
+      <th>Сүүлд идэвхтэй</th>
+      <th>Өдөр</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for t in teams %}
+    <tr>
+      <td>{{ 'ЗМ' if t.track.value == 'professionals' else 'ОЮ' }}</td>
+      <td>
+        <a href="/admin/team/{{ t.id }}">{{ t.display_name }}</a>
+        {% for a in alert_map.get(t.id, []) %}
+        <span class="alert-badge {{ a }}">
+          {% if a == 'inactive' %}3+хоног{% elif a == 'no_leader' %}ахлагчгүй{% elif a == 'no_project' %}төсөлгүй{% elif a == 'no_slot' %}өдөргүй{% endif %}
+        </span>
+        {% endfor %}
+      </td>
+      <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ t.topic }}</td>
+      <td>{{ t.leader.full_name if t.leader else '' }}</td>
+      <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ t.project_name or '' }}</td>
+      <td style="text-align: center;">{{ t.current_step }}</td>
+      <td>
+        <div class="progress-bar" style="width: 60px; display:inline-block; vertical-align:middle;">
+          <div class="fill" style="width: {{ t.task_progress }}%"></div>
+        </div>
+        <span style="font-size: 0.7rem;">{{ t.task_progress }}%</span>
+      </td>
+      <td>{% if t.last_activity %}{{ t.last_activity.strftime('%m/%d') }}{% endif %}</td>
+      <td>{% if t.slot %}{{ t.slot.slot_date.strftime('%m/%d') }}{% endif %}</td>
+      <td><a href="/admin/team/{{ t.id }}" class="btn btn-sm btn-outline" style="padding:2px 8px; min-height:24px;">Дэлгэрэнгүй</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}
