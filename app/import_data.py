@@ -28,12 +28,16 @@ HEADER_ALIASES = {
     "ажлын газар": "workplace",
     "албан тушаал": "position",
     "хэлний оноо": "language_score",
+    "асуулт 1 (өөрийгөө танилцуулах)": "_skip",
     "асуулт 2 (зорилго)": "_skip",
     "асуулт 3 (бэрхшээл)": "_skip",
     "асуулт 4 (ai-аар шийдэх асуудал)": "_skip",
     "асуулт 5 (мотиваци)": "_skip",
     "баг": "team",
+    "багийн дугаар": "team",
+    "баг №": "team",
     "яагаад энэ багт орсон, ямар зорилго нь ижил байсан": "team_reason_raw",
+    "багт орсон шалтгаан": "team_reason_raw",
     "овог": "surname",
     "нэр": "first_name",
     "овог нэр": "full_name",
@@ -43,10 +47,19 @@ HEADER_ALIASES = {
     "нас": "_skip",
     "хүйс": "_skip",
     "боловсрол": "_skip",
+    "магистрант эсэх": "_skip",
+    "олимпиад / тэтгэлэг": "_skip",
+    "голч": "_skip",
+    "сурдаг сургууль": "workplace",
+    "сурдаг чиглэл курс": "position",
     "багийн сэдэв": "team_topic",
+    "багийн чиглэл": "team_topic",
     "гишүүдийн тоо": "_skip",
     "гишүүд (код)": "member_codes",
+    "гишүүд": "member_codes",
     "ижил зорилго": "shared_goal",
+    "багийн нийтлэг зорилго": "shared_goal",
+    "гишүүдийн мэргэжил": "_skip",
     "date": "slot_date",
     "time": "slot_time",
     "module": "_skip",
@@ -60,9 +73,13 @@ def map_headers(ws):
         if cell.value is None:
             continue
         norm = normalize_header(cell.value)
+        raw_lower = str(cell.value).strip().lower()
         for alias_key, field_name in HEADER_ALIASES.items():
             alias_norm = normalize_header(alias_key)
-            if norm == alias_norm or alias_key.lower() == str(cell.value).strip().lower():
+            if norm == alias_norm or alias_key.lower() == raw_lower:
+                header_map[cell.column] = field_name
+                break
+            if len(alias_norm) > 4 and (norm.startswith(alias_norm) or alias_norm.startswith(norm)):
                 header_map[cell.column] = field_name
                 break
     return header_map
