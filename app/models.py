@@ -26,7 +26,7 @@ class Team(Base):
 
     id = Column(Integer, primary_key=True)
     number = Column(Integer, nullable=False)
-    track = Column(Enum(TrackEnum), nullable=False)
+    track = Column(Enum(TrackEnum, native_enum=False), nullable=False)
     topic = Column(String(500), default="")
     shared_goal = Column(Text, default="")
 
@@ -127,7 +127,7 @@ class Learner(Base):
 
     id = Column(Integer, primary_key=True)
     code = Column(String(100), nullable=False)
-    track = Column(Enum(TrackEnum), nullable=False)
+    track = Column(Enum(TrackEnum, native_enum=False), nullable=False)
     surname = Column(String(200), default="")
     first_name = Column(String(200), default="")
     workplace = Column(String(300), nullable=True)
@@ -188,7 +188,7 @@ class Task(Base):
     title = Column(String(500), nullable=False)
     assignee_id = Column(Integer, ForeignKey("learners.id"), nullable=True)
     due_date = Column(Date, nullable=True)
-    status = Column(Enum(TaskStatus), default=TaskStatus.todo)
+    status = Column(Enum(TaskStatus, native_enum=False), default=TaskStatus.todo)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     team = relationship("Team", back_populates="tasks")
@@ -199,7 +199,7 @@ class PresentationSlot(Base):
     __tablename__ = "presentation_slots"
 
     id = Column(Integer, primary_key=True)
-    track = Column(Enum(TrackEnum), nullable=False)
+    track = Column(Enum(TrackEnum, native_enum=False), nullable=False)
     slot_date = Column(Date, nullable=False)
     time_start = Column(String(10), nullable=False)
     time_end = Column(String(10), nullable=False)

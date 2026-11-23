@@ -1,21 +1,28 @@
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, text, event
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 from app.config import DATABASE_URL
 
+_is_sqlite = "sqlite" in DATABASE_URL
+
+connect_args = {"check_same_thread": False} if _is_sqlite else {}
+pool_args = {} if _is_sqlite else {"pool_size": 5, "max_overflow": 10, "pool_pre_ping": True}
+
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {},
+    connect_args=connect_args,
     echo=False,
+    **pool_args,
 )
 
 
-@event.listens_for(engine, "connect")
-def set_sqlite_pragma(dbapi_connection, connection_record):
-    cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA journal_mode=WAL")
-    cursor.execute("PRAGMA foreign_keys=ON")
-    cursor.close()
+if _is_sqlite:
+    @event.listens_for(engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -62,11 +69,14 @@ def _migrate_add_columns():
     with engine.connect() as conn:
         for table, col, col_type in new_columns:
             try:
-                conn.execute(
-                    __import__("sqlalchemy").text(
+                if _is_sqlite:
+                    conn.execute(text(
                         f"ALTER TABLE {table} ADD COLUMN {col} {col_type}"
-                    )
-                )
+                    ))
+                else:
+                    conn.execute(text(
+                        f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {col_type}"
+                    ))
                 conn.commit()
             except Exception:
                 conn.rollback()
