@@ -57,6 +57,22 @@
 <!-- Import -->
 <div class="card" style="margin-bottom: 16px;">
   <div class="card-header">Excel импорт</div>
+
+  <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;">
+    {% for track_key, info in import_status.items() %}
+    <div style="padding: 8px 14px; border-radius: 8px; font-size: 0.85rem;
+      background: {% if info.learners > 0 %}var(--color-success-bg, #e6f9e6){% else %}var(--color-bg-alt, #f5f5f5){% endif %};
+      border: 1px solid {% if info.learners > 0 %}var(--color-success, #2e7d32){% else %}#ddd{% endif %};">
+      <strong>{{ "Мэргэжилтнүүд" if track_key == "professionals" else "Оюутнууд" }}:</strong>
+      {% if info.learners > 0 %}
+        ✓ {{ info.learners }} суралцагч, {{ info.teams }} баг импортлогдсон
+      {% else %}
+        Импортлоогүй
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
   <form method="post" action="/admin/import" enctype="multipart/form-data" style="display:flex; gap: 8px; align-items: flex-end; flex-wrap: wrap;">
     <div class="form-group" style="margin-bottom: 0;">
       <label>Файл</label>
@@ -64,13 +80,29 @@
     </div>
     <div class="form-group" style="margin-bottom: 0;">
       <label>Урсгал</label>
-      <select name="track" class="form-control">
+      <select name="track" id="import-track" class="form-control" onchange="checkImportStatus()">
         <option value="professionals">Мэргэжилтнүүд</option>
         <option value="students">Оюутнууд</option>
       </select>
     </div>
-    <button type="submit" class="btn btn-primary btn-sm">Импортлох</button>
+    <button type="submit" class="btn btn-primary btn-sm" id="import-btn">Импортлох</button>
   </form>
+  <div id="import-warning" style="display: none; margin-top: 8px; padding: 8px 12px; background: #fff3cd; border-radius: 6px; font-size: 0.85rem; color: #856404;">
+    ⚠ Энэ урсгалд аль хэдийн өгөгдөл импортлогдсон байна. Дахин импортлоход өмнөх өгөгдөл шинэчлэгдэнэ.
+  </div>
+  <script>
+  var importStatus = {{ import_status | tojson }};
+  function checkImportStatus() {
+    var track = document.getElementById('import-track').value;
+    var warn = document.getElementById('import-warning');
+    if (importStatus[track] && importStatus[track].learners > 0) {
+      warn.style.display = 'block';
+    } else {
+      warn.style.display = 'none';
+    }
+  }
+  checkImportStatus();
+  </script>
 </div>
 
 <!-- Export -->

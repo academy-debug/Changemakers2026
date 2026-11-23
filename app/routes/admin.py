@@ -102,6 +102,12 @@ async def admin_dashboard(request: Request, db: Session = Depends(get_db)):
         alerts.append((t.id, t_alerts))
     alert_map = dict(alerts)
 
+    import_status = {}
+    for tr in TrackEnum:
+        count = db.query(Learner).filter(Learner.track == tr).count()
+        team_count = db.query(Team).filter(Team.track == tr).count()
+        import_status[tr.value] = {"learners": count, "teams": team_count}
+
     return request.app.state.templates.TemplateResponse("admin/dashboard.html", {
         "request": request,
         "teams": teams,
@@ -112,6 +118,7 @@ async def admin_dashboard(request: Request, db: Session = Depends(get_db)):
         "alert_map": alert_map,
         "track_filter": track_filter,
         "step_filter": step_filter,
+        "import_status": import_status,
     })
 
 
@@ -234,11 +241,27 @@ async def admin_import(
     request: Request,
     file: UploadFile = File(...),
     track: str = Form(...),
+    confirm_overwrite: str = Form(""),
     db: Session = Depends(get_db),
 ):
     require_admin(request)
     import tempfile, os
     from app.import_data import import_excel
+
+    try:
+        track_enum = TrackEnum(track)
+    except ValueError:
+        raise HTTPException(400, "Урсгал буруу байна")
+
+    existing_count = db.query(Learner).filter(Learner.track == track_enum).count()
+    if existing_count > 0 and confirm_overwrite != "yes":
+        return request.app.state.templates.TemplateResponse("admin/import_report.html", {
+            "request": request,
+            "report": None,
+            "track": track,
+            "duplicate_warning": True,
+            "existing_count": existing_count,
+        })
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
         content = await file.read()
@@ -254,6 +277,8 @@ async def admin_import(
         "request": request,
         "report": report,
         "track": track,
+        "duplicate_warning": False,
+        "existing_count": 0,
     })
 
 

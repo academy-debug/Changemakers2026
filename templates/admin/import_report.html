@@ -6,8 +6,30 @@
   <a href="/admin" style="font-size: 0.85rem;">&larr; Хяналтын самбар руу</a>
 </div>
 
+{% if duplicate_warning %}
 <div class="card">
-  <div class="card-header">Импортын тайлан: {{ track }}</div>
+  <div class="card-header" style="background: #fff3cd; color: #856404;">⚠ Давхардсан импорт</div>
+  <p style="margin: 12px 0;">
+    <strong>{{ "Мэргэжилтнүүд" if track == "professionals" else "Оюутнууд" }}</strong> урсгалд аль хэдийн
+    <strong>{{ existing_count }}</strong> суралцагч импортлогдсон байна.
+  </p>
+  <p style="margin-bottom: 12px; font-size: 0.9rem; color: var(--color-text-light);">
+    Дахин импортлоход өмнөх өгөгдөл шинэчлэгдэнэ (устгахгүй). Үргэлжлүүлэх үү?
+  </p>
+  <div style="display: flex; gap: 8px;">
+    <form method="post" action="/admin/import" enctype="multipart/form-data">
+      <input type="hidden" name="track" value="{{ track }}">
+      <input type="hidden" name="confirm_overwrite" value="yes">
+      <input type="file" name="file" accept=".xlsx" required class="form-control" style="padding: 6px; margin-bottom: 8px;">
+      <button type="submit" class="btn btn-sm" style="background: #e65100; color: #fff;">Тийм, дахин импортлох</button>
+    </form>
+    <a href="/admin" class="btn btn-sm" style="background: #eee; color: #333; text-decoration: none; padding: 6px 14px;">Буцах</a>
+  </div>
+</div>
+{% else %}
+
+<div class="card">
+  <div class="card-header">Импортын тайлан: {{ "Мэргэжилтнүүд" if track == "professionals" else "Оюутнууд" }}</div>
 
   <div class="stat-grid" style="margin-top: 12px;">
     <div class="stat-card">
@@ -74,4 +96,5 @@
   </div>
   {% endif %}
 </div>
+{% endif %}
 {% endblock %}
